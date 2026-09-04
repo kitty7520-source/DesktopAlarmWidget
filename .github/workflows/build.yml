@@ -1,0 +1,44 @@
+name: Build Desktop Alarm APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'DesktopAlarmWidget-source-*.zip'
+      - '.github/workflows/build.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+
+      - name: Extract source
+        shell: bash
+        run: |
+          archive=$(ls -1 DesktopAlarmWidget-source-*.zip | sort -V | tail -1)
+          test -n "$archive"
+          unzip -q "$archive" -d extracted
+          test -f extracted/DesktopAlarmWidget/app/build.gradle
+
+      - name: Build APK
+        run: gradle -p extracted/DesktopAlarmWidget :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopAlarmWidget-v1.1.0-APK
+          path: extracted/DesktopAlarmWidget/app/build/outputs/apk/debug/app-debug.apk
